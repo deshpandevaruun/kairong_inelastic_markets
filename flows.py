@@ -132,10 +132,10 @@ percentile_1 = result_bond_cleaned['flow'].quantile(0.01)
 percentile_99 = result_bond_cleaned['flow'].quantile(0.99)
 
 # Filter the DataFrame
-#filtered_result_bond = result_bond_cleaned[(result_bond_cleaned['flow'] >= percentile_1) & (result_bond_cleaned['flow'] <= percentile_99)]
+filtered_result_bond = result_bond_cleaned[(result_bond_cleaned['flow'] >= percentile_1) & (result_bond_cleaned['flow'] <= percentile_99)]
 
-filtered_result_bond = result_bond_cleaned
-filtered_result_bond['flow'] = winsorize(filtered_result_bond['flow'], limits=[0.01, 0.01])
+#filtered_result_bond = result_bond_cleaned
+#filtered_result_bond['flow'] = winsorize(filtered_result_bond['flow'], limits=[0.01, 0.01])
 
 result_equity_cleaned = result_equity[~result_equity['flow'].isin([np.inf, -np.inf])]
 #result_equity_cleaned['flow_winsorize'] = winsorize(result_equity_cleaned['flow'], limits = [0.01, 0.01])
@@ -144,10 +144,10 @@ percentile_1 = result_equity_cleaned['flow'].quantile(0.01)
 percentile_99 = result_equity_cleaned['flow'].quantile(0.99)
 
 # Filter the DataFrame
-#filtered_result_equity = result_equity_cleaned[(result_equity_cleaned['flow'] >= percentile_1) & (result_equity_cleaned['flow'] <= percentile_99)]
+filtered_result_equity = result_equity_cleaned[(result_equity_cleaned['flow'] >= percentile_1) & (result_equity_cleaned['flow'] <= percentile_99)]
 
-filtered_result_equity = result_equity_cleaned
-filtered_result_equity['flow'] = winsorize(filtered_result_equity['flow'], limits=[0.01, 0.01])
+#filtered_result_equity = result_equity_cleaned
+#filtered_result_equity['flow'] = winsorize(filtered_result_equity['flow'], limits=[0.01, 0.01])
 
 filtered_result_equity = filtered_result_equity.rename(columns={'index': 'caldt'})
 filtered_result_bond = filtered_result_bond.rename(columns={'index': 'caldt'})
