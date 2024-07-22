@@ -48,7 +48,7 @@ fund_flows_1_data = fund_flows_1_data.dropna(subset=['crsp_fundno'])
 
 fund_flows_1_data['crsp_fundno'] = fund_flows_1_data['crsp_fundno'].astype(int)
 fund_flows_1_data_post_90 = fund_flows_1_data[fund_flows_1_data['caldt'].dt.year >= 1990]
-fund_flows_2_data = fund_flows_2_data[['crsp_fundno', 'caldt', 'crsp_obj_cd']]
+fund_flows_2_data = fund_flows_2_data[['crsp_fundno', 'caldt', 'crsp_obj_cd', 'index_fund_flag', 'et_flag']]
 
 def fill_obj_cd(group):
     unique_values = group.dropna().unique()
@@ -61,10 +61,20 @@ fund_flows_2_data['crsp_obj_cd'] = fund_flows_2_data.groupby('crsp_fundno')['crs
 
 print('step 1')
 #Get equity and bond funds
-equity_identifiers = ['ED']
+equity_identifiers = ['EDC', 'EDY']
 bond_identifiers = ['IU', 'IC', 'IG', 'IM']
-equity_mutual_funds = fund_flows_2_data[fund_flows_2_data['crsp_obj_cd'].str[0:2].isin(equity_identifiers)]
+equity_mutual_funds = fund_flows_2_data[fund_flows_2_data['crsp_obj_cd'].str[0:3].isin(equity_identifiers)]
+
+#exclude index fund
+equity_mutual_funds = equity_mutual_funds[equity_mutual_funds['index_fund_flag'] != 'D']
+#exclude ETF
+equity_mutual_funds = equity_mutual_funds[equity_mutual_funds['et_flag'].isna()]
+
 bond_mutual_funds = fund_flows_2_data[fund_flows_2_data['crsp_obj_cd'].str[0:2].isin(bond_identifiers)]
+#exclude index fund
+bond_mutual_funds = bond_mutual_funds[bond_mutual_funds['index_fund_flag'] != 'D']
+#exclude ETF
+bond_mutual_funds = bond_mutual_funds[bond_mutual_funds['et_flag'].isna()]
 
 equity_mutual_funds_fundno = equity_mutual_funds['crsp_fundno'].unique()
 
@@ -107,7 +117,8 @@ result_bond = grouped_bond.apply(add_missing_months).reset_index(drop=True)
 
 def flow(group):
     mtna_shifted = group['mtna'].shift(1)
-    flow_i = group['mtna']  - (1 + group['mret'])*mtna_shifted
+    mret_shifted = group['mret'].shift(1)
+    flow_i = group['mtna']/mtna_shifted  - (1 + group['mret'])
     return flow_i
 
 
@@ -121,10 +132,10 @@ percentile_1 = result_bond_cleaned['flow'].quantile(0.01)
 percentile_99 = result_bond_cleaned['flow'].quantile(0.99)
 
 # Filter the DataFrame
-filtered_result_bond = result_bond_cleaned[(result_bond_cleaned['flow'] >= percentile_1) & (result_bond_cleaned['flow'] <= percentile_99)]
+#filtered_result_bond = result_bond_cleaned[(result_bond_cleaned['flow'] >= percentile_1) & (result_bond_cleaned['flow'] <= percentile_99)]
 
-
-#result_bond_cleaned['flow_winsorize'] = winsorize(result_bond_cleaned['flow'], limits=[0.01, 0.01])
+filtered_result_bond = result_bond_cleaned
+filtered_result_bond['flow'] = winsorize(filtered_result_bond['flow'], limits=[0.01, 0.01])
 
 result_equity_cleaned = result_equity[~result_equity['flow'].isin([np.inf, -np.inf])]
 #result_equity_cleaned['flow_winsorize'] = winsorize(result_equity_cleaned['flow'], limits = [0.01, 0.01])
@@ -133,9 +144,10 @@ percentile_1 = result_equity_cleaned['flow'].quantile(0.01)
 percentile_99 = result_equity_cleaned['flow'].quantile(0.99)
 
 # Filter the DataFrame
-filtered_result_equity = result_equity_cleaned[(result_equity_cleaned['flow'] >= percentile_1) & (result_equity_cleaned['flow'] <= percentile_99)]
+#filtered_result_equity = result_equity_cleaned[(result_equity_cleaned['flow'] >= percentile_1) & (result_equity_cleaned['flow'] <= percentile_99)]
 
-
+filtered_result_equity = result_equity_cleaned
+filtered_result_equity['flow'] = winsorize(filtered_result_equity['flow'], limits=[0.01, 0.01])
 
 filtered_result_equity = filtered_result_equity.rename(columns={'index': 'caldt'})
 filtered_result_bond = filtered_result_bond.rename(columns={'index': 'caldt'})
@@ -166,11 +178,12 @@ equity_total_final = equity_total.groupby('caldt')['weights_times_flow'].sum().r
 bond_total_final = bond_total.groupby('caldt')['weights_times_flow'].sum().reset_index()
 
 
-plt.plot( bond_total_final['weights_times_flow'])
+plt.plot(bond_total_final['caldt'],  bond_total_final['weights_times_flow'])
 plt.show()
-plt.plot( equity_total_final['weights_times_flow'])
+plt.plot( equity_total_final['caldt'], equity_total_final['weights_times_flow'])
 plt.show()
 
-
+bond_total_final.to_csv('/Users/varuundeshpande/Desktop/Columbia_MSFE/RA_2024/Kairong/InelasticMarkets/bond_flows.csv')
+equity_total_final.to_csv('/Users/varuundeshpande/Desktop/Columbia_MSFE/RA_2024/Kairong/InelasticMarkets/equity_flows.csv')
 
 
